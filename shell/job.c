@@ -64,6 +64,7 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled) {
 }
 
 static void array_remove(struct mrsh_array *array, size_t i) {
+	assert(array->len > i);
 	memmove(&array->data[i], &array->data[i + 1],
 		(array->len - i - 1) * sizeof(void *));
 	--array->len;
@@ -87,6 +88,7 @@ struct mrsh_job *job_create(struct mrsh_state *state,
 	job->pgid = -1;
 	job->job_id = id;
 	job->last_status = TASK_STATUS_WAIT;
+	job->data = state->job_data;
 	mrsh_array_add(&priv->jobs, job);
 	return job;
 }
@@ -337,6 +339,15 @@ static void update_job(struct mrsh_state *state, pid_t pid, int stat) {
 			job_set_foreground(job, false, false);
 		}
 	}
+}
+
+struct mrsh_job *job_get_foreground(struct mrsh_state *state) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+	struct mrsh_job *job = priv->foreground_job;
+	if (job != NULL && job_poll(job) == TASK_STATUS_WAIT) {
+		return job;
+	}
+	return NULL;
 }
 
 // https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_204

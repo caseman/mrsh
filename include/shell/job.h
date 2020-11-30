@@ -31,6 +31,8 @@ struct mrsh_job {
 
 	bool pending_notification; // need to print a job status notification
 	int last_status;
+
+	void *data; // application-defined data
 };
 
 /**
@@ -74,7 +76,10 @@ int job_wait_process(struct mrsh_process *proc);
  * foreground.
  */
 bool job_set_foreground(struct mrsh_job *job, bool foreground, bool cont);
-
+/**
+ * Return the current running foreground job, or NULL if there is none.
+ */
+struct mrsh_job *job_get_foreground(struct mrsh_state *state);
 /**
  * Initialize a child process state.
  */

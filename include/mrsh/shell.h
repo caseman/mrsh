@@ -75,6 +75,7 @@ struct mrsh_state {
 	struct mrsh_call_frame *frame; // last call frame
 	bool interactive;
 	int last_status;
+	void *job_data; // app-defined data assigned to new jobs
 };
 
 struct mrsh_parser;
@@ -102,5 +103,19 @@ bool mrsh_set_job_control(struct mrsh_state *state, bool enabled);
  * called after mrsh_run_program.
  */
 void mrsh_destroy_terminated_jobs(struct mrsh_state *state);
+/**
+ * Return an array of jobs that have changed state so an application can
+ * perform custom notification. Also destroys terminated jobs. The returned
+ * array must be freed by the caller.
+ *
+ * Use this function instead of mrsh_destroy_terminated_jobs above, they
+ * should not be used together or notifications will be lost.
+ *
+ * Note since this function will destroy and dealloc jobs that have
+ * terminated, job pointers returned in one call can be invalidated in a later
+ * call. Only job pointers returned from the last call made to mrsh_poll_jobs
+ * should be considered valid.
+ */
+struct mrsh_job **mrsh_poll_jobs(struct mrsh_state *state);
 
 #endif

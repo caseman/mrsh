@@ -373,7 +373,7 @@ int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 				exit(ret);
 			}
 
-			ret = 0;
+			ret = TASK_STATUS_WAIT;
 			init_async_child(&child_ctx, pid);
 		} else {
 			ret = run_and_or_list(ctx, list->and_or_list);
@@ -401,6 +401,34 @@ static void show_job(struct mrsh_job *job, struct mrsh_job *current,
 	fprintf(stderr, "[%d] %c %s %s\n", job->job_id, curprev,
 		job_state_str(job, r), cmd);
 	free(cmd);
+}
+
+struct mrsh_job **mrsh_poll_jobs(struct mrsh_state *state) {
+	struct mrsh_state_priv *priv = state_get_priv(state);
+	struct mrsh_job **jobs_pending = NULL;
+	int num_pending = 0;
+
+	refresh_jobs_status(state);
+
+	for (size_t i = 0; i < priv->jobs.len; ++i) {
+		struct mrsh_job *job = priv->jobs.data[i];
+
+		if (job->pending_notification) {
+			if (jobs_pending == NULL) {
+				jobs_pending = calloc(priv->jobs.len + 1, sizeof(struct mrsh_job *));
+				if (jobs_pending == NULL) {
+					return NULL;
+				}
+			}
+			jobs_pending[num_pending++] = job;
+			job->pending_notification = false;
+		} else if (job_poll(job) >= 0) {
+			job_destroy(job);
+			--i;
+		}
+	}
+
+	return jobs_pending;
 }
 
 void mrsh_destroy_terminated_jobs(struct mrsh_state *state) {
