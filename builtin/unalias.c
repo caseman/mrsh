@@ -15,8 +15,6 @@ static void delete_alias_iterator(const char *key, void *_value,
 }
 
 int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	bool all = false;
 
 	_mrsh_optind = 0;
@@ -38,8 +36,8 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 			fprintf(stderr, unalias_usage);
 			return 1;
 		}
-		mrsh_hashtable_for_each(&priv->aliases, delete_alias_iterator,
-			&priv->aliases);
+		mrsh_hashtable_for_each(&state->aliases, delete_alias_iterator,
+			&state->aliases);
 		return 0;
 	}
 
@@ -49,7 +47,7 @@ int builtin_unalias(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	for (int i = _mrsh_optind; i < argc; ++i) {
-		free(mrsh_hashtable_del(&priv->aliases, argv[i]));
+		free(mrsh_hashtable_del(&state->aliases, argv[i]));
 	}
 	return 0;
 }

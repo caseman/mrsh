@@ -15,11 +15,9 @@ struct wait_handle {
 };
 
 int builtin_wait(struct mrsh_state *state, int argc, char *argv[]) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	int npids = argc - 1;
 	if (npids == 0) {
-		npids = priv->processes.len;
+		npids = state->processes.len;
 	}
 	struct wait_handle *pids = malloc(npids * sizeof(struct wait_handle));
 	if (pids == NULL) {
@@ -30,8 +28,8 @@ int builtin_wait(struct mrsh_state *state, int argc, char *argv[]) {
 	if (argc == 1) {
 		/* All known processes */
 		int _npids = 0;
-		for (size_t j = 0; j < priv->processes.len; ++j) {
-			struct mrsh_process *process = priv->processes.data[j];
+		for (size_t j = 0; j < state->processes.len; ++j) {
+			struct mrsh_process *process = state->processes.data[j];
 			if (process->terminated) {
 				continue;
 			}
@@ -64,8 +62,8 @@ int builtin_wait(struct mrsh_state *state, int argc, char *argv[]) {
 				pids[i - 1].status = -1;
 				/* Check if this pid is known */
 				bool found = false;
-				for (size_t j = 0; j < priv->processes.len; ++j) {
-					struct mrsh_process *process = priv->processes.data[j];
+				for (size_t j = 0; j < state->processes.len; ++j) {
+					struct mrsh_process *process = state->processes.data[j];
 					if (process->pid == pid) {
 						if (process->terminated) {
 							pids[i - 1].status = process->stat;

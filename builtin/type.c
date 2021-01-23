@@ -9,8 +9,6 @@
 static const char type_usage[] = "usage: type name...\n";
 
 int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	_mrsh_optind = 0;
 	if (_mrsh_getopt(argc, argv, ":") != -1) {
 		fprintf(stderr, "type: unknown option -- %c\n", _mrsh_optopt);
@@ -26,7 +24,7 @@ int builtin_type(struct mrsh_state *state, int argc, char *argv[]) {
 	for (int i = _mrsh_optind; i < argc; ++i) {
 		char *name = argv[i];
 
-		char *alias = mrsh_hashtable_get(&priv->aliases, name);
+		char *alias = mrsh_hashtable_get(&state->aliases, name);
 		if (alias != NULL) {
 			fprintf(stdout, "%s is an alias for %s\n", name, alias);
 			continue;

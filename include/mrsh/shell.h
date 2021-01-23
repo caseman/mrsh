@@ -6,6 +6,8 @@
 #include <mrsh/hashtable.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <termios.h>
+#include "shell/trap.h"
 
 enum mrsh_option {
 	// -a: When this option is on, the export attribute shall be set for each
@@ -71,11 +73,29 @@ struct mrsh_call_frame {
 
 struct mrsh_state {
 	int exit;
+	bool job_control;
+	bool interactive;
+
 	uint32_t options; // enum mrsh_option
 	struct mrsh_call_frame *frame; // last call frame
-	bool interactive;
-	int last_status;
 	void *job_data; // app-defined data assigned to new jobs
+	int last_status;
+
+	int term_fd;
+	struct mrsh_array processes;
+	struct mrsh_hashtable aliases; // char *
+	struct mrsh_hashtable variables; // struct mrsh_variable *
+	struct mrsh_hashtable functions; // struct mrsh_function *
+
+	pid_t pgid;
+	struct termios term_modes;
+	struct mrsh_array jobs; // struct mrsh_job *
+	struct mrsh_job *foreground_job;
+
+	struct mrsh_trap traps[MRSH_NSIG];
+
+	// TODO: move this to context
+	bool child; // true if we're not the main shell process
 };
 
 struct mrsh_parser;

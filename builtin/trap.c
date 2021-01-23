@@ -107,9 +107,8 @@ static const char *sig_str(int sig) {
 }
 
 static void print_traps(struct mrsh_state *state) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-	for (size_t i = 0; i < sizeof(priv->traps) / sizeof(priv->traps[0]); i++) {
-		struct mrsh_trap *trap = &priv->traps[i];
+	for (size_t i = 0; i < sizeof(state->traps) / sizeof(state->traps[0]); i++) {
+		struct mrsh_trap *trap = &state->traps[i];
 		if (!trap->set) {
 			continue;
 		}

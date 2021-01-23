@@ -13,14 +13,12 @@
 #include "shell/trap.h"
 
 static int run_subshell(struct mrsh_context *ctx, struct mrsh_array *array) {
-	struct mrsh_state_priv *priv = state_get_priv(ctx->state);
-
 	pid_t pid = fork();
 	if (pid < 0) {
 		perror("fork");
 		return TASK_STATUS_ERROR;
 	} else if (pid == 0) {
-		priv->child = true;
+		ctx->state->child = true;
 
 		reset_caught_traps(ctx->state);
 
@@ -244,12 +242,10 @@ static int run_case_clause(struct mrsh_context *ctx, struct mrsh_case_clause *cc
 
 static int run_function_definition(struct mrsh_context *ctx,
 		struct mrsh_function_definition *fnd) {
-	struct mrsh_state_priv *priv = state_get_priv(ctx->state);
-
 	struct mrsh_function *fn = calloc(1, sizeof(struct mrsh_function));
 	fn->body = mrsh_command_copy(fnd->body);
 	struct mrsh_function *old_fn =
-		mrsh_hashtable_set(&priv->functions, fnd->name, fn);
+		mrsh_hashtable_set(&ctx->state->functions, fnd->name, fn);
 	function_destroy(old_fn);
 	return 0;
 }
@@ -327,8 +323,6 @@ static struct mrsh_process *init_async_child(struct mrsh_context *ctx, pid_t pid
 
 int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 	struct mrsh_state *state = ctx->state;
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	int ret = 0;
 	for (size_t i = 0; i < array->len; ++i) {
 		struct mrsh_command_list *list = array->data[i];
@@ -345,7 +339,7 @@ int run_command_list_array(struct mrsh_context *ctx, struct mrsh_array *array) {
 				return TASK_STATUS_ERROR;
 			} else if (pid == 0) {
 				ctx = NULL; // Use child_ctx instead
-				priv->child = true;
+				ctx->state->child = true;
 
 				init_async_child(&child_ctx, getpid());
 				if (state->options & MRSH_OPT_MONITOR) {
@@ -404,18 +398,17 @@ static void show_job(struct mrsh_job *job, struct mrsh_job *current,
 }
 
 struct mrsh_job **mrsh_poll_jobs(struct mrsh_state *state) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
 	struct mrsh_job **jobs_pending = NULL;
 	int num_pending = 0;
 
 	refresh_jobs_status(state);
 
-	for (size_t i = 0; i < priv->jobs.len; ++i) {
-		struct mrsh_job *job = priv->jobs.data[i];
+	for (size_t i = 0; i < state->jobs.len; ++i) {
+		struct mrsh_job *job = state->jobs.data[i];
 
 		if (job->pending_notification) {
 			if (jobs_pending == NULL) {
-				jobs_pending = calloc(priv->jobs.len + 1, sizeof(struct mrsh_job *));
+				jobs_pending = calloc(state->jobs.len + 1, sizeof(struct mrsh_job *));
 				if (jobs_pending == NULL) {
 					return NULL;
 				}
@@ -432,16 +425,14 @@ struct mrsh_job **mrsh_poll_jobs(struct mrsh_state *state) {
 }
 
 void mrsh_destroy_terminated_jobs(struct mrsh_state *state) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	struct mrsh_job *current = job_by_id(state, "%+", false),
 		*previous = job_by_id(state, "%-", false);
 	bool r = rand() % 2 == 0;
 
 	refresh_jobs_status(state);
 
-	for (size_t i = 0; i < priv->jobs.len; ++i) {
-		struct mrsh_job *job = priv->jobs.data[i];
+	for (size_t i = 0; i < state->jobs.len; ++i) {
+		struct mrsh_job *job = state->jobs.data[i];
 
 		int status = job_poll(job);
 

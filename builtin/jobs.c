@@ -48,8 +48,6 @@ static void show_job(struct mrsh_job *job, const struct jobs_context *ctx) {
 }
 
 int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	struct mrsh_job *current = job_by_id(state, "%+", false),
 		*previous = job_by_id(state, "%-", false);
 
@@ -89,8 +87,8 @@ int builtin_jobs(struct mrsh_state *state, int argc, char *argv[]) {
 	}
 
 	if (_mrsh_optind == argc) {
-		for (size_t i = 0; i < priv->jobs.len; i++) {
-			struct mrsh_job *job = priv->jobs.data[i];
+		for (size_t i = 0; i < state->jobs.len; i++) {
+			struct mrsh_job *job = state->jobs.data[i];
 			show_job(job, &ctx);
 		}
 	} else {

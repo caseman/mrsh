@@ -23,11 +23,9 @@ static void handle_signal(int sig) {
 
 bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 		struct mrsh_program *program) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	assert(action == MRSH_TRAP_CATCH || program == NULL);
 
-	struct mrsh_trap *trap = &priv->traps[sig];
+	struct mrsh_trap *trap = &state->traps[sig];
 
 	if (sig != 0) {
 		if (!trap->set && !state->interactive) {
@@ -45,7 +43,7 @@ bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 			}
 		}
 
-		if (action == MRSH_TRAP_DEFAULT && priv->job_control) {
+		if (action == MRSH_TRAP_DEFAULT && state->job_control) {
 			// When job control is enabled, some signals are ignored by default
 			for (size_t i = 0; i < ignored_job_control_sigs_len; i++) {
 				if (sig == ignored_job_control_sigs[i]) {
@@ -83,11 +81,9 @@ bool set_trap(struct mrsh_state *state, int sig, enum mrsh_trap_action action,
 }
 
 bool set_job_control_traps(struct mrsh_state *state, bool enabled) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	for (size_t i = 0; i < ignored_job_control_sigs_len; i++) {
 		int sig = ignored_job_control_sigs[i];
-		struct mrsh_trap *trap = &priv->traps[i];
+		struct mrsh_trap *trap = &state->traps[i];
 
 		struct sigaction sa = {0};
 		if (enabled) {
@@ -109,10 +105,8 @@ bool set_job_control_traps(struct mrsh_state *state, bool enabled) {
 }
 
 bool reset_caught_traps(struct mrsh_state *state) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	for (size_t i = 0; i < MRSH_NSIG; i++) {
-		struct mrsh_trap *trap = &priv->traps[i];
+		struct mrsh_trap *trap = &state->traps[i];
 		if (trap->set && trap->action != MRSH_TRAP_IGNORE) {
 			if (!set_trap(state, i, MRSH_TRAP_DEFAULT, NULL)) {
 				return false;
@@ -124,7 +118,6 @@ bool reset_caught_traps(struct mrsh_state *state) {
 }
 
 bool run_pending_traps(struct mrsh_state *state) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
 	static bool in_trap = false;
 
 	if (in_trap) {
@@ -135,7 +128,7 @@ bool run_pending_traps(struct mrsh_state *state) {
 	int last_status = state->last_status;
 
 	for (size_t i = 0; i < MRSH_NSIG; i++) {
-		struct mrsh_trap *trap = &priv->traps[i];
+		struct mrsh_trap *trap = &state->traps[i];
 		while (pending_sigs[i] > 0) {
 			if (!trap->set || trap->action != MRSH_TRAP_CATCH ||
 					trap->program == NULL) {

@@ -41,8 +41,6 @@ static struct mrsh_process *init_child(struct mrsh_context *ctx, pid_t pid) {
 static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 		char **argv) {
 	struct mrsh_state *state = ctx->state;
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	// The pipeline is responsible for creating the job
 	assert(ctx->job != NULL);
 
@@ -53,7 +51,7 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 	}
 
 	// Fork if we are not already in a background child process
-	if (!ctx->background || !priv->child) {
+	if (!ctx->background || !ctx->state->child) {
 		pid_t pid = fork();
 		if (pid < 0) {
 			perror("fork");
@@ -85,7 +83,7 @@ static int run_process(struct mrsh_context *ctx, struct mrsh_simple_command *sc,
 		free(value);
 	}
 
-	mrsh_hashtable_for_each(&priv->variables,
+	mrsh_hashtable_for_each(&ctx->state->variables,
 		populate_env_iterator, NULL);
 
 	for (size_t i = 0; i < sc->io_redirects.len; ++i) {
@@ -239,8 +237,6 @@ static struct mrsh_simple_command *copy_simple_command(
 
 int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc) {
 	struct mrsh_state *state = ctx->state;
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	if (sc->name == NULL) {
 		// Copy each assignment from the AST, because during expansion and
 		// substitution we'll mutate the tree
@@ -328,7 +324,7 @@ int run_simple_command(struct mrsh_context *ctx, struct mrsh_simple_command *sc)
 
 	ret = -1;
 	const struct mrsh_function *fn_def =
-		mrsh_hashtable_get(&priv->functions, argv_0);
+		mrsh_hashtable_get(&state->functions, argv_0);
 	if (fn_def != NULL) {
 		push_frame(state, argc, (const char **)argv);
 		// fn_def may be free'd during run_command when overwritten with another

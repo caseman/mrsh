@@ -231,15 +231,13 @@ int builtin_set(struct mrsh_state *state, int argc, char *argv[]) {
 
 int mrsh_process_args(struct mrsh_state *state, struct mrsh_init_args *init_args,
 		int argc, char *argv[]) {
-	struct mrsh_state_priv *priv = state_get_priv(state);
-
 	uint32_t populated_opts = 0;
 	int ret = set(state, argc, argv, init_args, &populated_opts);
 	if (ret != 0) {
 		return ret;
 	}
 
-	state->interactive = isatty(priv->term_fd) &&
+	state->interactive = isatty(state->term_fd) &&
 		init_args->command_str == NULL && init_args->command_file == NULL;
 	if (state->interactive && !(populated_opts & MRSH_OPT_MONITOR)) {
 		state->options |= MRSH_OPT_MONITOR;
